@@ -5,7 +5,11 @@
   "main": "index.html",
   "scripts": {
     "start": "python3 -m http.server 8000",
-    "deploy": "git push origin main"
+    "deploy": "git push origin main",
+    "deploy-worker": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^3.0.0"
   },
   "keywords": ["voice", "assistant", "jarvis", "speech-recognition"],
   "author": "Juanjo",

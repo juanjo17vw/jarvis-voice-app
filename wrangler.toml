@@ -1,0 +1,18 @@
+name = "jarvis-api"
+main = "worker.js"
+compatibility_date = "2026-03-31"
+
+[env.production]
+routes = [
+  { pattern = "jarvis-api.juanjo17vw.workers.dev/*", zone_name = "" }
+]
+
+[[env.production.kv_namespaces]]
+binding = "CACHE"
+id = "jarvis-cache"
+
+[build]
+command = "npm install"
+
+[triggers]
+crons = ["0 * * * *"]

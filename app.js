@@ -1,5 +1,5 @@
 // Configuración
-const GATEWAY_URL = 'https://little-ears-end.loca.lt';
+const GATEWAY_URL = 'https://jarvis-api.juanjo17vw.workers.dev';
 const KEYWORD = 'jarvis';
 const CONFIDENCE_THRESHOLD = 0.5;
 

@@ -30,13 +30,23 @@ cd jarvis-voice-app
 2. En Settings → Pages → Source: `main` branch / `root`
 3. La app estará disponible en: `https://<usuario>.github.io/jarvis-voice-app`
 
-## Gateway requerido
+## API Gateway (Cloudflare Workers)
 
-La app necesita acceso al gateway en: `https://little-ears-end.loca.lt`
+Desplegado en: `https://jarvis-api.juanjo17vw.workers.dev`
 
-El gateway debe proporcionar estos endpoints:
+Endpoints:
 - `POST /api/chat` - Procesar audio/texto
 - `POST /api/speak` - Convertir texto a audio
+
+### Desplegar Worker
+
+```bash
+npm install -D wrangler
+wrangler login
+npm run deploy-worker
+```
+
+El worker actúa como puente entre la web app y el gateway OpenClaw (túnel LocalTunnel).
 
 ## Compatibilidad
 
