@@ -3,141 +3,179 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jarvis - Voice Assistant</title>
+    <title>Jarvis</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1e1e2e 0%, #2d2d44 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f0f1e 0%, #1a1a2e 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
             color: #fff;
+            overflow: hidden;
         }
+        
         .container {
-            max-width: 600px;
-            padding: 40px;
-            background: rgba(0, 0, 0, 0.5);
-            border-radius: 20px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        h1 {
+            max-width: 500px;
+            width: 90%;
             text-align: center;
-            font-size: 2.5em;
+        }
+        
+        .logo {
+            font-size: 4em;
             margin-bottom: 20px;
+            animation: pulse 2s infinite;
+        }
+        
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 40px;
             background: linear-gradient(45deg, #00d4ff, #0099ff);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
+        
         .status {
-            text-align: center;
+            padding: 20px;
             margin: 20px 0;
-            padding: 15px;
+            border-radius: 15px;
+            font-size: 1.1em;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             background: rgba(0, 100, 200, 0.2);
-            border-radius: 10px;
             border-left: 4px solid #00d4ff;
+            transition: all 0.3s ease;
         }
+        
         .status.listening {
             background: rgba(0, 200, 100, 0.2);
             border-left-color: #00ff88;
+            animation: shimmer 1.5s infinite;
         }
+        
         .status.recording {
             background: rgba(200, 0, 100, 0.2);
             border-left-color: #ff0088;
+            animation: pulse 0.6s infinite;
         }
+        
         .status.processing {
             background: rgba(200, 100, 0, 0.2);
             border-left-color: #ffaa00;
         }
-        .info {
-            margin: 30px 0;
-            font-size: 0.95em;
-            line-height: 1.6;
-            opacity: 0.9;
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
         }
+        
+        @keyframes shimmer {
+            0%, 100% { box-shadow: inset 0 0 10px rgba(0, 255, 136, 0.3); }
+            50% { box-shadow: inset 0 0 20px rgba(0, 255, 136, 0.6); }
+        }
+        
         .controls {
-            display: flex;
-            gap: 10px;
             margin: 30px 0;
-            justify-content: center;
         }
+        
         button {
-            padding: 12px 30px;
+            padding: 15px 40px;
             font-size: 1em;
             border: none;
-            border-radius: 8px;
+            border-radius: 50px;
             cursor: pointer;
             transition: all 0.3s ease;
             font-weight: 600;
-        }
-        #startBtn {
             background: linear-gradient(45deg, #00d4ff, #0099ff);
             color: #000;
         }
-        #startBtn:hover {
+        
+        button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(0, 212, 255, 0.4);
+            box-shadow: 0 8px 25px rgba(0, 212, 255, 0.4);
         }
-        #startBtn:disabled {
+        
+        button:disabled {
             opacity: 0.5;
             cursor: not-allowed;
+            transform: none;
         }
+        
         .output {
-            margin-top: 30px;
-            padding: 20px;
+            margin-top: 40px;
+            padding: 25px;
             background: rgba(0, 50, 100, 0.3);
-            border-radius: 10px;
+            border-radius: 15px;
             border-left: 4px solid #00d4ff;
             display: none;
+            animation: slideIn 0.4s ease;
         }
+        
         .output.show {
             display: block;
-            animation: slideIn 0.3s ease;
         }
+        
         @keyframes slideIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
+        
         .response-text {
-            margin-top: 15px;
+            font-size: 1.1em;
+            line-height: 1.6;
+            color: #fff;
             padding: 15px;
             background: rgba(0, 0, 0, 0.3);
-            border-radius: 8px;
+            border-radius: 10px;
             font-style: italic;
         }
-        .error {
-            color: #ff6b6b;
-            margin-top: 10px;
-        }
+        
         .keyword {
             color: #00ff88;
             font-weight: bold;
+        }
+        
+        .info {
+            margin-top: 40px;
+            font-size: 0.95em;
+            opacity: 0.8;
+            line-height: 1.6;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🎩 Jarvis</h1>
+        <div class="logo">🎩</div>
+        <h1>Jarvis</h1>
         
-        <div class="status" id="status">Escuchando la palabra clave <span class="keyword">Jarvis</span></div>
-        
-        <div class="info">
-            <p>Diga <span class="keyword">Jarvis</span> para activar, luego formule su pregunta o solicitud.</p>
-            <p>Cuando termine de hablar, la respuesta se reproducirá automáticamente.</p>
+        <div class="status" id="status">
+            🎧 Escuchando la palabra clave <span class="keyword">Jarvis</span>
         </div>
         
         <div class="controls">
-            <button id="startBtn">Iniciar Escucha</button>
+            <button id="startBtn" disabled>Inicializando...</button>
         </div>
         
         <div class="output" id="output">
-            <div id="outputTitle">Respuesta:</div>
             <div class="response-text" id="responseText"></div>
-            <div id="errorMsg" class="error"></div>
+        </div>
+        
+        <div class="info">
+            <p>Diga <strong>Jarvis</strong> para activar</p>
+            <p>Luego formule su pregunta o solicitud</p>
+            <p>La respuesta se reproducirá automáticamente</p>
         </div>
     </div>
 

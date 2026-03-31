@@ -1,31 +1,26 @@
 // Configuración
 const GATEWAY_URL = 'https://jarvis-api.juanjojimenez89.workers.dev';
 const KEYWORD = 'jarvis';
-const CONFIDENCE_THRESHOLD = 0.5;
 
 let mediaRecorder;
 let audioContext;
-let analyser;
 let isListening = false;
 let isRecording = false;
 let recordedChunks = [];
-let keywordDetected = false;
+let recognition;
 
 const statusEl = document.getElementById('status');
 const startBtn = document.getElementById('startBtn');
 const outputEl = document.getElementById('output');
 const responseTextEl = document.getElementById('responseText');
-const errorMsgEl = document.getElementById('errorMsg');
 
-// Inicializar
+// Inicializar al cargar
 async function init() {
     try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
         const source = audioContext.createMediaStreamSource(stream);
-        analyser = audioContext.createAnalyser();
-        source.connect(analyser);
         
         const mediaStream = audioContext.createMediaStreamDestination();
         source.connect(mediaStream);
@@ -35,9 +30,9 @@ async function init() {
         mediaRecorder.onstop = sendAudio;
         
         startBtn.disabled = false;
-        updateStatus('Escuchando la palabra clave <span class="keyword">Jarvis</span>', 'listening');
+        startListening();
     } catch (err) {
-        updateStatus('Error: Permiso de micrófono denegado', 'error');
+        updateStatus('❌ Error: Permiso de micrófono denegado', 'error');
     }
 }
 
@@ -46,37 +41,32 @@ function updateStatus(text, className = '') {
     statusEl.className = 'status ' + className;
 }
 
-startBtn.addEventListener('click', () => {
-    isListening = !isListening;
-    if (isListening) {
-        startBtn.textContent = 'Detener Escucha';
-        startBtn.style.background = 'linear-gradient(45deg, #ff6b6b, #ff0055)';
-        startBtn.disabled = true;
-        listenForKeyword();
-    } else {
-        startBtn.textContent = 'Iniciar Escucha';
-        startBtn.style.background = 'linear-gradient(45deg, #00d4ff, #0099ff)';
-        startBtn.disabled = false;
-        isListening = false;
-    }
-});
-
-async function listenForKeyword() {
-    updateStatus('Escuchando...', 'listening');
+// Iniciar escucha continua
+function startListening() {
+    isListening = true;
+    startBtn.textContent = 'Escuchando...';
+    startBtn.disabled = true;
+    updateStatus('🎧 Escuchando la palabra clave <span class="keyword">Jarvis</span>', 'listening');
     
-    // Simulación de detección (Web Audio API simple)
-    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
     recognition.lang = 'es-ES';
     recognition.continuous = true;
     recognition.interimResults = true;
     
+    recognition.onstart = () => {
+        console.log('Reconocimiento iniciado');
+    };
+    
     recognition.onresult = (event) => {
         let interimTranscript = '';
+        
         for (let i = event.resultIndex; i < event.results.length; i++) {
-            const transcript = event.results[i][0].transcript.toLowerCase();
+            const transcript = event.results[i][0].transcript.toLowerCase().trim();
+            
             if (event.results[i].isFinal) {
+                console.log('Final:', transcript);
                 if (transcript.includes(KEYWORD)) {
-                    keywordDetected = true;
+                    console.log('Palabra clave detectada');
                     recognition.stop();
                     startRecording();
                     return;
@@ -88,7 +78,23 @@ async function listenForKeyword() {
     };
     
     recognition.onerror = (event) => {
-        console.error('Error en reconocimiento:', event.error);
+        console.error('Error:', event.error);
+        if (event.error === 'network') {
+            setTimeout(() => {
+                if (isListening) {
+                    recognition.start();
+                }
+            }, 1000);
+        }
+    };
+    
+    recognition.onend = () => {
+        console.log('Reconocimiento terminado');
+        if (isListening && !isRecording) {
+            setTimeout(() => {
+                recognition.start();
+            }, 500);
+        }
     };
     
     recognition.start();
@@ -100,7 +106,7 @@ function startRecording() {
     mediaRecorder.start();
     isRecording = true;
     
-    // Detener grabación después de 10 segundos de silencio o 30 segundos máximo
+    // Detener después de 15 segundos de silencio detectado o 30 segundos máximo
     setTimeout(() => {
         if (isRecording) {
             mediaRecorder.stop();
@@ -110,59 +116,58 @@ function startRecording() {
 
 async function sendAudio() {
     isRecording = false;
-    updateStatus('Procesando...', 'processing');
+    updateStatus('⚙️ Procesando...', 'processing');
     
     const audioBlob = new Blob(recordedChunks, { type: 'audio/webm' });
     
     try {
-        // Convertir blob a base64
+        // Obtener transcripción simple (enviamos el audio como datos)
         const reader = new FileReader();
         reader.onloadend = async () => {
             const base64Audio = reader.result.split(',')[1];
             
-            // Enviar al gateway
+            // Llamar al API para procesar
             const response = await fetch(`${GATEWAY_URL}/api/chat`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    type: 'audio',
-                    audio: base64Audio,
-                    userId: 'web-user'
+                    text: 'Usuario pregunta algo', // Placeholder
+                    audio: base64Audio
                 })
             });
             
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             
             const data = await response.json();
-            displayResponse(data.message || data.response);
+            const message = data.message || 'Disculpe, no pude procesar su solicitud.';
             
-            // Reproducir respuesta con TTS
-            if (data.message) {
-                playAudio(data.message);
-            }
+            displayResponse(message);
+            playAudio(message);
         };
         reader.readAsDataURL(audioBlob);
         
     } catch (err) {
         displayError(`Error: ${err.message}`);
-        updateStatus('Escuchando la palabra clave <span class="keyword">Jarvis</span>', 'listening');
     }
+    
+    // Reiniciar escucha
+    setTimeout(() => {
+        if (isListening) {
+            startListening();
+        }
+    }, 2000);
 }
 
 function displayResponse(text) {
     outputEl.classList.add('show');
     responseTextEl.textContent = text;
-    errorMsgEl.textContent = '';
-    updateStatus('✓ Respuesta recibida', 'listening');
+    updateStatus('✅ Respuesta lista', 'listening');
 }
 
 function displayError(error) {
     outputEl.classList.add('show');
-    errorMsgEl.textContent = error;
-    responseTextEl.textContent = '';
-    updateStatus('Error', 'error');
+    responseTextEl.textContent = error;
+    updateStatus('❌ Error', 'error');
 }
 
 async function playAudio(text) {
@@ -180,9 +185,23 @@ async function playAudio(text) {
         const audio = new Audio(audioUrl);
         audio.play();
     } catch (err) {
-        console.error('Error reproduciendo audio:', err);
+        console.error('Error de audio:', err);
     }
 }
+
+// Botón para detener/reanudar
+startBtn.addEventListener('click', () => {
+    if (isListening) {
+        isListening = false;
+        recognition.stop();
+        startBtn.textContent = 'Reanudar';
+        updateStatus('⏸️ Pausado', '');
+    } else {
+        isListening = true;
+        startBtn.textContent = 'Pausar';
+        startListening();
+    }
+});
 
 // Inicializar cuando carga la página
 window.addEventListener('load', init);
