@@ -1,5 +1,5 @@
 // Configuración
-const GATEWAY_URL = 'https://jarvis-api.juanjo17vw.workers.dev';
+const GATEWAY_URL = 'https://jarvis-api.juanjojimenez89.workers.dev';
 const KEYWORD = 'jarvis';
 const CONFIDENCE_THRESHOLD = 0.5;
 

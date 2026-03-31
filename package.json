@@ -9,9 +9,14 @@
     "deploy-worker": "wrangler deploy"
   },
   "devDependencies": {
-    "wrangler": "^3.0.0"
+    "wrangler": "^3.114.17"
   },
-  "keywords": ["voice", "assistant", "jarvis", "speech-recognition"],
+  "keywords": [
+    "voice",
+    "assistant",
+    "jarvis",
+    "speech-recognition"
+  ],
   "author": "Juanjo",
   "license": "MIT"
 }
