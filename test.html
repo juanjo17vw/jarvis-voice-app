@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jarvis Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a2e;
+            color: #fff;
+            padding: 40px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        h1 { color: #00d4ff; }
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            font-size: 1em;
+            cursor: pointer;
+            background: #00d4ff;
+            color: #000;
+            border: none;
+            border-radius: 5px;
+        }
+        button:hover { background: #0099ff; }
+        #output {
+            background: rgba(0, 100, 200, 0.2);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            min-height: 100px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎩 Jarvis - Test</h1>
+    
+    <button onclick="testAPI()">Test API</button>
+    <button onclick="testVoice()">Test Voz</button>
+    
+    <div id="output">Esperando...</div>
+
+    <script>
+        const API_URL = 'https://jarvis-api.juanjojimenez89.workers.dev';
+        const output = document.getElementById('output');
+
+        async function testAPI() {
+            output.innerHTML = 'Enviando al API...';
+            try {
+                const response = await fetch(`${API_URL}/api/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: 'Hola Jarvis' })
+                });
+                
+                const data = await response.json();
+                output.innerHTML = `<strong>Respuesta:</strong><br>${data.message || JSON.stringify(data)}`;
+                
+                if (data.message) {
+                    playVoice(data.message);
+                }
+            } catch (error) {
+                output.innerHTML = `<strong>Error:</strong><br>${error.message}`;
+            }
+        }
+
+        async function testVoice() {
+            output.innerHTML = 'Grabando audio...';
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const recorder = new MediaRecorder(stream);
+                const chunks = [];
+                
+                recorder.ondataavailable = (e) => chunks.push(e.data);
+                recorder.onstop = async () => {
+                    output.innerHTML = 'Audio grabado. Enviando...';
+                    const blob = new Blob(chunks, { type: 'audio/webm' });
+                    const reader = new FileReader();
+                    reader.onloadend = async () => {
+                        const base64 = reader.result.split(',')[1];
+                        const response = await fetch(`${API_URL}/api/chat`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ audio: base64, text: 'Test' })
+                        });
+                        const data = await response.json();
+                        output.innerHTML = `<strong>Respuesta:</strong><br>${data.message}`;
+                    };
+                    reader.readAsDataURL(blob);
+                };
+                
+                recorder.start();
+                setTimeout(() => recorder.stop(), 3000);
+                output.innerHTML = 'Grabando durante 3 segundos...';
+            } catch (error) {
+                output.innerHTML = `<strong>Error:</strong><br>${error.message}`;
+            }
+        }
+
+        async function playVoice(text) {
+            try {
+                const response = await fetch(`${API_URL}/api/speak`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: text })
+                });
+                
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const audio = new Audio(url);
+                audio.play();
+            } catch (error) {
+                console.error('Error reproduciendo:', error);
+            }
+        }
+    </script>
+</body>
+</html>
