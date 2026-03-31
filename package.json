@@ -1,0 +1,13 @@
+{
+  "name": "jarvis-voice-app",
+  "version": "1.0.0",
+  "description": "Voice assistant web app with keyword detection",
+  "main": "index.html",
+  "scripts": {
+    "start": "python3 -m http.server 8000",
+    "deploy": "git push origin main"
+  },
+  "keywords": ["voice", "assistant", "jarvis", "speech-recognition"],
+  "author": "Juanjo",
+  "license": "MIT"
+}
