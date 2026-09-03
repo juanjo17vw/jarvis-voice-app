@@ -102,6 +102,8 @@ dependencias es decision del usuario, pregunta antes de hacerlo tu.
   ~150 MB `base`). En redes restringidas falla: copia la cache de HuggingFace desde
   otra maquina (`HF_HOME`) o usa la API remota.
 - `fetch` respeta lo que permita yt-dlp: no sirve para contenido de pago o con DRM.
+  Ademas, en sesiones remotas de Claude Code (claude.ai/code) el proxy suele bloquear
+  la salida a YouTube: ahi solo funcionan los ficheros locales. Descarga en tu maquina.
   Si el video ya trae subtitulos, usalos antes que la transcripcion automatica — son
   mas fieles y gratis.
 - En Chromium headless la Web Speech API **no** reconoce voz real (no hay servicio de
