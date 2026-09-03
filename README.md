@@ -54,3 +54,21 @@ El worker actúa como puente entre la web app y el gateway OpenClaw (túnel Loca
 - Firefox 25+
 - Safari 14.1+
 - Requiere HTTPS (o localhost)
+
+## Skill de Claude: ver vídeos
+
+En `.claude/skills/watch-video/` hay una skill que permite a Claude Code "ver" vídeos:
+extrae fotogramas clave a JPG, transcribe el audio con marcas de tiempo y genera un
+informe. Funciona con ficheros locales, URLs de YouTube/web y grabaciones de la propia
+app en un navegador real.
+
+```bash
+S=.claude/skills/watch-video/scripts
+
+python3 $S/video_tools.py watch demo.mp4              # vídeo local
+python3 $S/video_tools.py watch "https://youtu.be/X"  # YouTube
+python3 $S/record_app.py --duration 15                # graba esta app + consola
+```
+
+Dependencias mínimas: `pip3 install imageio-ffmpeg` (ffmpeg) y, para transcribir,
+`pip3 install faster-whisper`. Detalles y opciones en el propio `SKILL.md`.
