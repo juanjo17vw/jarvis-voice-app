@@ -33,6 +33,12 @@ cd jarvis-voice-app
 2. En Settings → Pages → Source: `main` branch / `root`
 3. La app estará disponible en: `https://<usuario>.github.io/jarvis-voice-app`
 
+## Aplicación de escritorio (Windows)
+
+`desktop/jarvis.exe` abre Jarvis en una ventana limpia de Chrome o Edge, sin barra de
+direcciones, como si fuera una app nativa. Doble clic y listo; acepta otra URL como
+argumento para probar en local. Detalles y cómo recompilarlo: [`desktop/README.md`](desktop/README.md).
+
 ## API Gateway (Cloudflare Workers)
 
 Desplegado en: `https://jarvis-api.juanjojimenez89.workers.dev`
