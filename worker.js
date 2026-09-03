@@ -1,6 +1,7 @@
 // Configuración simple sin dependencia del gateway
-const ELEVENLABS_API_KEY = 'sk_5f9883cfbbc0d5c94d545471d3375070700610cfea7bc97f';
-const ELEVENLABS_VOICE_ID = 'onwK4e9ZLuTAKqWW03F9';
+// La API key NUNCA va en el código: se guarda como secret de Cloudflare
+//   wrangler secret put ELEVENLABS_API_KEY
+const DEFAULT_VOICE_ID = 'onwK4e9ZLuTAKqWW03F9';
 
 // CORS Headers
 function corsHeaders() {
@@ -12,11 +13,11 @@ function corsHeaders() {
 }
 
 // Text to Speech
-async function textToSpeech(text) {
-  const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/' + ELEVENLABS_VOICE_ID, {
+async function textToSpeech(text, apiKey, voiceId) {
+  const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/' + voiceId, {
     method: 'POST',
     headers: {
-      'xi-api-key': ELEVENLABS_API_KEY,
+      'xi-api-key': apiKey,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
@@ -47,7 +48,7 @@ function generateResponse(userInput) {
 }
 
 export default {
-  async fetch(request) {
+  async fetch(request, env) {
     const url = new URL(request.url);
 
     if (request.method === 'OPTIONS') {
@@ -74,9 +75,18 @@ export default {
 
     if (url.pathname === '/api/speak' && request.method === 'POST') {
       try {
+        const apiKey = env.ELEVENLABS_API_KEY;
+        if (!apiKey) {
+          return new Response(
+            JSON.stringify({ error: 'Falta el secret ELEVENLABS_API_KEY (wrangler secret put ELEVENLABS_API_KEY)' }),
+            { status: 500, headers: { ...corsHeaders(), 'Content-Type': 'application/json' } }
+          );
+        }
+
         const data = await request.json();
         const text = data.text || 'Hola';
-        const audioBuffer = await textToSpeech(text);
+        const voiceId = env.ELEVENLABS_VOICE_ID || DEFAULT_VOICE_ID;
+        const audioBuffer = await textToSpeech(text, apiKey, voiceId);
 
         return new Response(audioBuffer, {
           headers: {

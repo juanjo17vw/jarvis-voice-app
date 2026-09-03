@@ -5,17 +5,20 @@ Web app con detección de palabra clave que permite interactuar con el asistente
 ## Características
 
 - ✅ Detección automática de la palabra clave "Jarvis"
-- 🎤 Grabación de voz después de la activación
-- 🔊 Reproducción automática de respuestas en audio
-- 🔒 Conexión segura al gateway via túnel LocalTunnel
+- 🔊 Respuesta hablada automática (TTS de ElevenLabs vía Cloudflare Worker)
+- ♻️ Reintentos con espera creciente, y parada limpia si no hay micrófono o permiso
 - 📱 Interfaz responsive
 
 ## Cómo funciona
 
 1. La página escucha continuamente esperando oír "Jarvis"
-2. Al detectar la palabra clave, inicia grabación
-3. Envía el audio grabado al gateway
-4. Recibe la respuesta y la reproduce automáticamente
+2. Al detectar la palabra clave, elige una respuesta de cortesía
+3. Pide el audio de esa frase al worker (`POST /api/speak`, TTS de ElevenLabs)
+4. Lo reproduce y vuelve a escuchar en cuanto termina
+
+Hoy la respuesta es una frase fija: la app **no** graba ni envía tu pregunta.
+El endpoint `/api/chat` del worker ya existe y responde texto, pero la web
+todavía no lo llama.
 
 ## Instalación
 
@@ -32,7 +35,8 @@ cd jarvis-voice-app
 
 ## API Gateway (Cloudflare Workers)
 
-Desplegado en: `https://jarvis-api.juanjo17vw.workers.dev`
+Desplegado en: `https://jarvis-api.juanjojimenez89.workers.dev`
+(es la URL que usa `app.js`; si despliegas en otra cuenta, cambia `GATEWAY_URL`)
 
 Endpoints:
 - `POST /api/chat` - Procesar audio/texto
@@ -43,10 +47,21 @@ Endpoints:
 ```bash
 npm install -D wrangler
 wrangler login
+
+# La API key de ElevenLabs va como secret, nunca en el código
+wrangler secret put ELEVENLABS_API_KEY
+
+# Opcional: cambiar la voz (por defecto onwK4e9ZLuTAKqWW03F9)
+wrangler secret put ELEVENLABS_VOICE_ID
+
 npm run deploy-worker
 ```
 
-El worker actúa como puente entre la web app y el gateway OpenClaw (túnel LocalTunnel).
+Sin el secret `ELEVENLABS_API_KEY`, `/api/speak` responde 500 con un mensaje que lo
+explica en vez de fallar en silencio.
+
+`worker-simple.js` es una copia idéntica de `worker.js`; el que se despliega es
+`worker.js` (lo fija `wrangler.toml`).
 
 ## Compatibilidad
 

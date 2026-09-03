@@ -4,7 +4,7 @@ compatibility_date = "2026-03-31"
 
 [env.production]
 routes = [
-  { pattern = "jarvis-api.juanjo17vw.workers.dev/*", zone_name = "" }
+  { pattern = "jarvis-api.juanjojimenez89.workers.dev/*", zone_name = "" }
 ]
 
 [[env.production.kv_namespaces]]
