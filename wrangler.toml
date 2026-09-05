@@ -11,6 +11,15 @@ workers_dev = true
 [vars]
 ALLOWED_ORIGINS = "https://juanjo17vw.github.io,http://localhost:8000,http://127.0.0.1:8000"
 
+# Almacén de las claves que se añaden desde la pantalla de Ajustes.
+# Descoméntalo tras crear el namespace y pega el id que te devuelva:
+#   npx wrangler kv namespace create SETTINGS
+# Mientras esté comentado, /api/settings responde 500 explicándolo y el resto
+# de la app funciona con normalidad.
+# [[kv_namespaces]]
+# binding = "SETTINGS"
+# id = "pega-aqui-el-id"
+
 # La API key de ElevenLabs NO va aquí. Se configura como secret:
 #   wrangler secret put ELEVENLABS_API_KEY
 # Opcionalmente, para cambiar de voz:
@@ -18,3 +27,6 @@ ALLOWED_ORIGINS = "https://juanjo17vw.github.io,http://localhost:8000,http://127
 #
 # La clave de Claude tampoco va aquí:
 #   wrangler secret put ANTHROPIC_API_KEY
+#
+# Contraseña de la pantalla de Ajustes (sin ella queda cerrada):
+#   wrangler secret put ADMIN_TOKEN

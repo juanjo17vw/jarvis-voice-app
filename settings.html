@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jarvis · Ajustes</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f0f1e 0%, #1a1a2e 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 40px 20px;
+        }
+
+        .container { max-width: 640px; margin: 0 auto; }
+
+        h1 {
+            font-size: 2em;
+            margin-bottom: 8px;
+            background: linear-gradient(45deg, #00d4ff, #0099ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .sub { opacity: 0.7; margin-bottom: 32px; font-size: 0.95em; }
+        .sub a { color: #00d4ff; }
+
+        .card {
+            background: rgba(0, 50, 100, 0.3);
+            border-left: 4px solid #00d4ff;
+            border-radius: 12px;
+            padding: 22px;
+            margin-bottom: 20px;
+        }
+
+        h2 { font-size: 1.1em; margin-bottom: 14px; }
+
+        label { display: block; font-size: 0.85em; opacity: 0.8; margin: 12px 0 6px; }
+
+        input {
+            width: 100%;
+            padding: 11px 14px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.35);
+            color: #fff;
+            font-size: 1em;
+            font-family: inherit;
+        }
+
+        input:focus { outline: none; border-color: #00d4ff; }
+
+        button {
+            padding: 11px 22px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95em;
+            background: linear-gradient(45deg, #00d4ff, #0099ff);
+            color: #000;
+            margin-top: 16px;
+        }
+
+        button:hover { opacity: 0.85; }
+        button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        button.danger {
+            background: none;
+            border: 1px solid rgba(255, 90, 130, 0.5);
+            color: #ff5a82;
+            margin: 0;
+            padding: 6px 12px;
+            font-size: 0.8em;
+        }
+
+        .key {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .key:last-child { border-bottom: none; }
+        .key-name { font-family: ui-monospace, 'Cascadia Code', Consolas, monospace; font-size: 0.9em; }
+        .key-meta { font-size: 0.78em; opacity: 0.55; margin-top: 3px; }
+
+        .msg { padding: 12px 14px; border-radius: 8px; margin-top: 16px; font-size: 0.9em; display: none; }
+        .msg.show { display: block; }
+        .msg.ok { background: rgba(0, 200, 100, 0.15); border-left: 3px solid #00ff88; }
+        .msg.err { background: rgba(255, 60, 100, 0.15); border-left: 3px solid #ff3c64; }
+
+        .empty { opacity: 0.5; font-size: 0.9em; padding: 8px 0; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Ajustes</h1>
+        <p class="sub">Claves de API de Jarvis · <a href="/">volver al asistente</a></p>
+
+        <div class="card" id="loginCard">
+            <h2>Contraseña</h2>
+            <label for="token">Token de administración</label>
+            <input type="password" id="token" placeholder="El valor de ADMIN_TOKEN" autocomplete="current-password">
+            <button id="loginBtn">Entrar</button>
+            <div class="msg err" id="loginMsg"></div>
+        </div>
+
+        <div id="panel" class="hidden">
+            <div class="card">
+                <h2>Claves guardadas</h2>
+                <div id="list"><div class="empty">Cargando…</div></div>
+            </div>
+
+            <div class="card">
+                <h2>Añadir o actualizar una clave</h2>
+                <label for="name">Nombre</label>
+                <input id="name" placeholder="OPENWEATHER_API_KEY" autocapitalize="characters">
+                <label for="value">Valor</label>
+                <input type="password" id="value" placeholder="La clave que te da el servicio">
+                <button id="saveBtn">Guardar</button>
+                <div class="msg" id="saveMsg"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="settings.js"></script>
+</body>
+</html>

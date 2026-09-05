@@ -109,6 +109,31 @@ npm run deploy-worker
 Si cambias de cuenta de Cloudflare, actualiza `GATEWAY_URL` en `app.js` y `API_URL` en `test.html`
 con tu subdominio `*.workers.dev`.
 
+## Ajustes: añadir claves de API
+
+`settings.html` es una pantalla para ir añadiendo claves de otros servicios (tiempo,
+música, lo que integres) sin tocar la línea de comandos. Las claves **se guardan en el
+Worker**, en KV: nunca quedan en el navegador ni se envían desde él a esos servicios.
+
+Requiere dos cosas antes de funcionar:
+
+```bash
+npx wrangler kv namespace create SETTINGS   # pega el id en wrangler.toml y descomenta el bloque
+npx wrangler secret put ADMIN_TOKEN         # la contraseña de la pantalla
+npm run deploy-worker
+```
+
+Sin `ADMIN_TOKEN` la pantalla queda **cerrada**, no abierta: `/api/settings` responde 401.
+Sin el namespace KV, responde 500 explicándolo, y el resto de la app sigue funcionando.
+
+Los endpoints (todos con `Authorization: Bearer <ADMIN_TOKEN>`):
+
+- `GET /api/settings` — lista los nombres, los 4 últimos caracteres y la fecha.
+  **Nunca devuelve el valor de una clave**: el listado se construye con los metadatos de KV,
+  así que no hay forma de leerlas desde fuera.
+- `PUT /api/settings/<NOMBRE>` — guarda o actualiza. El nombre debe ser `MAYUSCULAS_Y_NUMEROS`.
+- `DELETE /api/settings/<NOMBRE>` — la borra.
+
 ## Pruebas
 
 `test.html` permite probar los endpoints del Worker por separado, sin usar la palabra clave.

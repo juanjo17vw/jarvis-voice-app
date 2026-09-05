@@ -47,8 +47,8 @@ function corsHeaders(request, env) {
 
   if (origin && allowedOrigins(env).includes(origin)) {
     headers['Access-Control-Allow-Origin'] = origin;
-    headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS';
-    headers['Access-Control-Allow-Headers'] = 'Content-Type';
+    headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
+    headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization';
     headers['Access-Control-Max-Age'] = '86400';
   }
 
@@ -139,6 +139,84 @@ async function askClaude(text, history, env) {
   return { message: message || 'No he sabido qué responder, señor.' };
 }
 
+// --- Ajustes: claves de API guardadas en KV -------------------------------
+//
+// Los valores solo se pueden escribir, nunca leer desde fuera: el listado se
+// construye con los metadatos, así que ningún endpoint devuelve una clave.
+
+const KEY_PREFIX = 'apikey:';
+const KEY_NAME = /^[A-Z][A-Z0-9_]{0,63}$/;
+
+// Comparación en tiempo constante, para no filtrar el token por lo que tarda
+function constantTimeEqual(a, b) {
+  const encoder = new TextEncoder();
+  const left = encoder.encode(a);
+  const right = encoder.encode(b);
+  if (left.length !== right.length) return false;
+
+  let diff = 0;
+  for (let i = 0; i < left.length; i++) diff |= left[i] ^ right[i];
+  return diff === 0;
+}
+
+// Sin ADMIN_TOKEN configurado la pantalla queda cerrada, no abierta
+function isAuthorized(request, env) {
+  if (!env.ADMIN_TOKEN) return false;
+
+  const header = request.headers.get('Authorization') || '';
+  if (!header.startsWith('Bearer ')) return false;
+  return constantTimeEqual(header.slice('Bearer '.length), env.ADMIN_TOKEN);
+}
+
+function preview(value) {
+  return value.length > 4 ? '…' + value.slice(-4) : '…';
+}
+
+async function handleSettings(request, env, url, jsonResponse) {
+  if (!env.SETTINGS) {
+    return jsonResponse({ error: 'Falta el binding KV "SETTINGS" en wrangler.toml' }, 500);
+  }
+  if (!isAuthorized(request, env)) {
+    return jsonResponse({ error: 'No autorizado' }, 401);
+  }
+
+  if (url.pathname === '/api/settings' && request.method === 'GET') {
+    const { keys } = await env.SETTINGS.list({ prefix: KEY_PREFIX });
+    return jsonResponse({
+      keys: keys.map((k) => ({
+        name: k.name.slice(KEY_PREFIX.length),
+        preview: k.metadata?.preview ?? '…',
+        updated: k.metadata?.updated ?? null,
+      })),
+    });
+  }
+
+  const name = decodeURIComponent(url.pathname.slice('/api/settings/'.length));
+  if (!KEY_NAME.test(name)) {
+    return jsonResponse({ error: 'Nombre inválido: usa mayúsculas, números y _ (p. ej. OPENWEATHER_API_KEY)' }, 400);
+  }
+
+  if (request.method === 'PUT') {
+    const { value } = await request.json();
+    if (typeof value !== 'string' || !value.trim()) {
+      return jsonResponse({ error: 'Falta el campo "value"' }, 400);
+    }
+
+    const clean = value.trim();
+    await env.SETTINGS.put(KEY_PREFIX + name, clean, {
+      metadata: { preview: preview(clean), updated: new Date().toISOString() },
+    });
+    return jsonResponse({ name, preview: preview(clean), saved: true });
+  }
+
+  if (request.method === 'DELETE') {
+    await env.SETTINGS.delete(KEY_PREFIX + name);
+    return jsonResponse({ name, deleted: true });
+  }
+
+  return jsonResponse({ error: 'Método no permitido' }, 405);
+}
+
 async function handleChat(request, env, jsonResponse) {
   const data = await request.json();
   const text = typeof data.text === 'string' ? data.text.trim() : '';
@@ -190,6 +268,14 @@ export default {
 
     if (request.method === 'OPTIONS') {
       return new Response(null, { status: 204, headers: cors });
+    }
+
+    if (url.pathname === '/api/settings' || url.pathname.startsWith('/api/settings/')) {
+      try {
+        return await handleSettings(request, env, url, jsonResponse);
+      } catch (error) {
+        return jsonResponse({ error: error.message }, 500);
+      }
     }
 
     if (url.pathname === '/api/chat' && request.method === 'POST') {
