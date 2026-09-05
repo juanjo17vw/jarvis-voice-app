@@ -1,6 +1,5 @@
-// Configuración simple sin dependencia del gateway
-const ELEVENLABS_API_KEY = 'sk_5f9883cfbbc0d5c94d545471d3375070700610cfea7bc97f';
-const ELEVENLABS_VOICE_ID = 'onwK4e9ZLuTAKqWW03F9';
+// Configuración vía secrets/vars del Worker (wrangler secret put ELEVENLABS_API_KEY)
+const DEFAULT_VOICE_ID = 'onwK4e9ZLuTAKqWW03F9';
 
 // CORS Headers
 function corsHeaders() {
@@ -11,12 +10,24 @@ function corsHeaders() {
   };
 }
 
+function jsonResponse(body, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders(), 'Content-Type': 'application/json' },
+  });
+}
+
 // Text to Speech
-async function textToSpeech(text) {
-  const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/' + ELEVENLABS_VOICE_ID, {
+async function textToSpeech(text, env) {
+  if (!env.ELEVENLABS_API_KEY) {
+    throw new Error('ELEVENLABS_API_KEY no configurada en el Worker');
+  }
+
+  const voiceId = env.ELEVENLABS_VOICE_ID || DEFAULT_VOICE_ID;
+  const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/' + voiceId, {
     method: 'POST',
     headers: {
-      'xi-api-key': ELEVENLABS_API_KEY,
+      'xi-api-key': env.ELEVENLABS_API_KEY,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
@@ -47,7 +58,7 @@ function generateResponse(userInput) {
 }
 
 export default {
-  async fetch(request) {
+  async fetch(request, env) {
     const url = new URL(request.url);
 
     if (request.method === 'OPTIONS') {
@@ -60,15 +71,9 @@ export default {
         const userMessage = data.text || 'Hola';
         const response = generateResponse(userMessage);
 
-        return new Response(
-          JSON.stringify({ message: response, success: true }),
-          { headers: { ...corsHeaders(), 'Content-Type': 'application/json' } }
-        );
+        return jsonResponse({ message: response, success: true });
       } catch (error) {
-        return new Response(
-          JSON.stringify({ error: error.message }),
-          { status: 500, headers: { ...corsHeaders(), 'Content-Type': 'application/json' } }
-        );
+        return jsonResponse({ error: error.message }, 500);
       }
     }
 
@@ -76,7 +81,7 @@ export default {
       try {
         const data = await request.json();
         const text = data.text || 'Hola';
-        const audioBuffer = await textToSpeech(text);
+        const audioBuffer = await textToSpeech(text, env);
 
         return new Response(audioBuffer, {
           headers: {
@@ -85,10 +90,7 @@ export default {
           },
         });
       } catch (error) {
-        return new Response(
-          JSON.stringify({ error: error.message }),
-          { status: 500, headers: { ...corsHeaders(), 'Content-Type': 'application/json' } }
-        );
+        return jsonResponse({ error: error.message }, 500);
       }
     }
 

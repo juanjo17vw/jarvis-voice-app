@@ -2,17 +2,10 @@ name = "jarvis-api"
 main = "worker.js"
 compatibility_date = "2026-03-31"
 
-[env.production]
-routes = [
-  { pattern = "jarvis-api.juanjo17vw.workers.dev/*", zone_name = "" }
-]
+# Publica en https://jarvis-api.<subdominio>.workers.dev
+workers_dev = true
 
-[[env.production.kv_namespaces]]
-binding = "CACHE"
-id = "jarvis-cache"
-
-[build]
-command = "npm install"
-
-[triggers]
-crons = ["0 * * * *"]
+# La API key de ElevenLabs NO va aquí. Se configura como secret:
+#   wrangler secret put ELEVENLABS_API_KEY
+# Opcionalmente, para cambiar de voz:
+#   wrangler secret put ELEVENLABS_VOICE_ID

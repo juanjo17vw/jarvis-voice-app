@@ -38,7 +38,7 @@
     <h1>🎩 Jarvis - Test</h1>
     
     <button onclick="testAPI()">Test API</button>
-    <button onclick="testVoice()">Test Voz</button>
+    <button onclick="testVoice()">Test Voz (TTS)</button>
     
     <div id="output">Esperando...</div>
 
@@ -59,41 +59,22 @@
                 output.innerHTML = `<strong>Respuesta:</strong><br>${data.message || JSON.stringify(data)}`;
                 
                 if (data.message) {
-                    playVoice(data.message);
+                    playVoice(data.message).catch(err => {
+                        output.innerHTML += `<br><em>(sin audio: ${err.message})</em>`;
+                    });
                 }
             } catch (error) {
                 output.innerHTML = `<strong>Error:</strong><br>${error.message}`;
             }
         }
 
+        // Prueba /api/speak directamente con un texto fijo
         async function testVoice() {
-            output.innerHTML = 'Grabando audio...';
+            output.innerHTML = 'Pidiendo audio a /api/speak...';
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                const recorder = new MediaRecorder(stream);
-                const chunks = [];
-                
-                recorder.ondataavailable = (e) => chunks.push(e.data);
-                recorder.onstop = async () => {
-                    output.innerHTML = 'Audio grabado. Enviando...';
-                    const blob = new Blob(chunks, { type: 'audio/webm' });
-                    const reader = new FileReader();
-                    reader.onloadend = async () => {
-                        const base64 = reader.result.split(',')[1];
-                        const response = await fetch(`${API_URL}/api/chat`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ audio: base64, text: 'Test' })
-                        });
-                        const data = await response.json();
-                        output.innerHTML = `<strong>Respuesta:</strong><br>${data.message}`;
-                    };
-                    reader.readAsDataURL(blob);
-                };
-                
-                recorder.start();
-                setTimeout(() => recorder.stop(), 3000);
-                output.innerHTML = 'Grabando durante 3 segundos...';
+                const text = 'A sus órdenes, señor.';
+                await playVoice(text);
+                output.innerHTML = `<strong>Audio reproducido:</strong><br>${text}`;
             } catch (error) {
                 output.innerHTML = `<strong>Error:</strong><br>${error.message}`;
             }
@@ -107,12 +88,15 @@
                     body: JSON.stringify({ text: text })
                 });
                 
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
                 const blob = await response.blob();
                 const url = URL.createObjectURL(blob);
                 const audio = new Audio(url);
                 audio.play();
             } catch (error) {
                 console.error('Error reproduciendo:', error);
+                throw error;
             }
         }
     </script>
