@@ -31,6 +31,7 @@ al recargar la página se olvida.
 ```bash
 git clone https://github.com/juanjo17vw/jarvis-voice-app.git
 cd jarvis-voice-app
+npm install
 npm start   # sirve en http://localhost:8000
 ```
 
