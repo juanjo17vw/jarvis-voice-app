@@ -3,6 +3,7 @@ const GATEWAY_URL = 'https://jarvis-api.juanjojimenez89.workers.dev';
 const KEYWORD = 'jarvis';
 const SILENCE_MS = 1500;   // pausa que da la pregunta por terminada
 const QUESTION_TIMEOUT_MS = 10000; // máximo esperando una pregunta
+const MAX_HISTORY = 20;    // mensajes de contexto que se envían al gateway
 
 // Estados: 'idle' | 'question' | 'processing' | 'speaking' | 'paused'
 let state = 'idle';
@@ -11,6 +12,7 @@ let recognizing = false;
 let questionText = '';
 let silenceTimer = null;
 let questionTimer = null;
+let history = []; // [{ role: 'user' | 'assistant', content }] para dar contexto a Claude
 
 const statusEl = document.getElementById('status');
 const startBtn = document.getElementById('startBtn');
@@ -198,11 +200,19 @@ async function submitQuestion() {
     const response = await fetch(`${GATEWAY_URL}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: question }),
+      body: JSON.stringify({ text: question, history: history }),
     });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const data = await response.json();
-    reply = data.message || 'No he recibido respuesta, señor.';
+
+    const data = await response.json().catch(() => ({}));
+
+    if (response.ok) {
+      reply = data.message || 'No he recibido respuesta, señor.';
+      remember(question, reply);
+    } else {
+      // El gateway manda un mensaje hablable en los errores esperados (p. ej. 503)
+      reply = data.message || 'Lo siento señor, el servidor ha respondido con un error.';
+      console.error('El gateway devolvió', response.status, data);
+    }
   } catch (err) {
     console.error('Error consultando el gateway:', err);
     reply = 'Lo siento señor, no he podido contactar con el servidor.';
@@ -212,6 +222,13 @@ async function submitQuestion() {
   updateStatus('🔊 Respondiendo...', 'processing');
   await speak(reply);
   backToIdle();
+}
+
+// Guarda el turno y recorta el historial a los últimos MAX_HISTORY mensajes
+function remember(question, reply) {
+  history.push({ role: 'user', content: question });
+  history.push({ role: 'assistant', content: reply });
+  history = history.slice(-MAX_HISTORY);
 }
 
 // --- Audio -----------------------------------------------------------------

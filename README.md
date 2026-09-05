@@ -6,6 +6,7 @@ Web app con detección de palabra clave que permite interactuar con el asistente
 
 - ✅ Detección automática de la palabra clave "Jarvis"
 - 💬 Captura de la pregunta tras la activación y envío al gateway
+- 🧠 Respuestas generadas por Claude (Anthropic), con memoria de la conversación
 - 🔊 Reproducción automática de respuestas en audio (ElevenLabs)
 - 🗣️ Voz del navegador como respaldo si el gateway no responde
 - 📱 Interfaz responsive
@@ -15,10 +16,15 @@ Web app con detección de palabra clave que permite interactuar con el asistente
 1. La página escucha continuamente esperando oír **Jarvis**
 2. Al detectar la palabra clave responde al instante con un acuse ("¿En qué puedo ayudarle, señor?")
 3. Escucha la pregunta y la da por terminada tras 1,5 s de silencio
-4. Envía la pregunta a `POST /api/chat` y reproduce la respuesta con `POST /api/speak`
+4. Envía la pregunta a `POST /api/chat`, que la responde con Claude, y reproduce la
+   respuesta con `POST /api/speak`
 5. Vuelve a esperar la palabra clave
 
 El micrófono se cierra mientras Jarvis habla, para que no se oiga a sí mismo.
+
+La web guarda los últimos 10 turnos y los manda con cada pregunta, así que se puede
+seguir el hilo ("¿qué tiempo hace?" → "¿y mañana?"). El historial vive solo en memoria:
+al recargar la página se olvida.
 
 ## Instalación
 
@@ -40,20 +46,38 @@ Desplegado en: `https://jarvis-api.juanjojimenez89.workers.dev`
 
 Endpoints:
 
-- `POST /api/chat` — recibe `{ "text": "..." }`, devuelve `{ "message": "...", "success": true }`
+- `POST /api/chat` — recibe `{ "text": "...", "history": [{ "role": "user" | "assistant", "content": "..." }] }`
+  y devuelve `{ "message": "...", "success": true, "source": "claude" | "fallback" }`.
+  `history` es opcional; el worker la valida y se queda con los 20 últimos mensajes.
 - `POST /api/speak` — recibe `{ "text": "..." }`, devuelve audio `audio/mpeg`
+
+### El modelo
+
+`/api/chat` llama a la Messages API de Anthropic con el SDK oficial (`@anthropic-ai/sdk`):
+
+- Modelo `claude-opus-5`, con un system prompt que fija el personaje de Jarvis y le pide
+  frases cortas en texto plano, porque la respuesta se lee en voz alta.
+- `effort: "low"`: en una conversación por voz importa más la latencia que la profundidad.
+  El pensamiento adaptativo sigue activo, que da mejor resultado que desactivarlo.
+- `fallbacks: "default"`: si el modelo declina una petición, la API la reintenta sola en
+  otro modelo dentro de la misma llamada, en vez de quedarse sin respuesta.
 
 ### Configuración de secretos
 
 La API key de ElevenLabs **no se guarda en el repositorio**. Se configura como secret del Worker:
 
 ```bash
+npx wrangler secret put ANTHROPIC_API_KEY     # https://console.anthropic.com
 npx wrangler secret put ELEVENLABS_API_KEY
 npx wrangler secret put ELEVENLABS_VOICE_ID   # opcional, hay una voz por defecto
 ```
 
-Si `ELEVENLABS_API_KEY` no está configurada, `/api/speak` devuelve un 500 explicando el motivo
-y la web app cae automáticamente a la voz del navegador.
+Ninguna de las dos es obligatoria para que la app arranque, y cada una degrada por separado:
+
+| Falta | Qué pasa |
+| --- | --- |
+| `ANTHROPIC_API_KEY` | `/api/chat` responde con las frases fijas de siempre (`source: "fallback"`) |
+| `ELEVENLABS_API_KEY` | `/api/speak` devuelve un 500 con el motivo y la web usa la voz del navegador |
 
 ### Desplegar Worker
 
