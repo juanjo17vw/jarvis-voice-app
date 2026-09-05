@@ -18,20 +18,41 @@ Mantén el tono sobrio y servicial del Jarvis de Iron Man: eficiente y con un pu
 ironía educada, nunca efusivo. Si no sabes algo o no tienes acceso a un dato (la hora,
 el tiempo, sus correos), dilo en una frase en lugar de inventarlo.`;
 
-// CORS Headers
-function corsHeaders() {
-  return {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-  };
+// Orígenes permitidos si no se define la variable ALLOWED_ORIGINS en wrangler.toml
+const DEFAULT_ALLOWED_ORIGINS = [
+  'https://juanjo17vw.github.io', // GitHub Pages
+  'http://localhost:8000',        // npm start
+  'http://127.0.0.1:8000',
+];
+
+function allowedOrigins(env) {
+  if (typeof env.ALLOWED_ORIGINS === 'string' && env.ALLOWED_ORIGINS.trim()) {
+    return env.ALLOWED_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean);
+  }
+  return DEFAULT_ALLOWED_ORIGINS;
 }
 
-function jsonResponse(body, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders(), 'Content-Type': 'application/json' },
-  });
+// Las peticiones sin cabecera Origin (curl, health checks) no vienen de una página
+// web, así que no hay nada que bloquear: solo se les niegan las cabeceras CORS.
+function isOriginAllowed(request, env) {
+  const origin = request.headers.get('Origin');
+  return !origin || allowedOrigins(env).includes(origin);
+}
+
+// Solo se devuelven cabeceras CORS al origen concreto que las pide, nunca '*'.
+// Vary: Origin evita que una caché sirva la respuesta de un origen a otro.
+function corsHeaders(request, env) {
+  const origin = request.headers.get('Origin');
+  const headers = { 'Vary': 'Origin' };
+
+  if (origin && allowedOrigins(env).includes(origin)) {
+    headers['Access-Control-Allow-Origin'] = origin;
+    headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS';
+    headers['Access-Control-Allow-Headers'] = 'Content-Type';
+    headers['Access-Control-Max-Age'] = '86400';
+  }
+
+  return headers;
 }
 
 // Text to Speech
@@ -118,7 +139,7 @@ async function askClaude(text, history, env) {
   return { message: message || 'No he sabido qué responder, señor.' };
 }
 
-async function handleChat(request, env) {
+async function handleChat(request, env, jsonResponse) {
   const data = await request.json();
   const text = typeof data.text === 'string' ? data.text.trim() : '';
 
@@ -156,14 +177,24 @@ async function handleChat(request, env) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    const cors = corsHeaders(request, env);
+    const jsonResponse = (body, status = 200) =>
+      new Response(JSON.stringify(body), {
+        status,
+        headers: { ...cors, 'Content-Type': 'application/json' },
+      });
+
+    if (!isOriginAllowed(request, env)) {
+      return new Response('Origen no permitido', { status: 403, headers: cors });
+    }
 
     if (request.method === 'OPTIONS') {
-      return new Response(null, { headers: corsHeaders() });
+      return new Response(null, { status: 204, headers: cors });
     }
 
     if (url.pathname === '/api/chat' && request.method === 'POST') {
       try {
-        return await handleChat(request, env);
+        return await handleChat(request, env, jsonResponse);
       } catch (error) {
         return jsonResponse({ error: error.message }, 500);
       }
@@ -176,16 +207,13 @@ export default {
         const audioBuffer = await textToSpeech(text, env);
 
         return new Response(audioBuffer, {
-          headers: {
-            ...corsHeaders(),
-            'Content-Type': 'audio/mpeg',
-          },
+          headers: { ...cors, 'Content-Type': 'audio/mpeg' },
         });
       } catch (error) {
         return jsonResponse({ error: error.message }, 500);
       }
     }
 
-    return new Response('Jarvis API Ready', { headers: corsHeaders() });
+    return new Response('Jarvis API Ready', { headers: cors });
   },
 };

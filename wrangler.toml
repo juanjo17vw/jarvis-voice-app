@@ -6,6 +6,11 @@ compatibility_flags = ["nodejs_compat"]  # requerido por @anthropic-ai/sdk
 # Publica en https://jarvis-api.<subdominio>.workers.dev
 workers_dev = true
 
+# Orígenes que pueden llamar a la API desde el navegador, separados por comas.
+# Añade aquí tu dominio propio si algún día dejas de usar github.io.
+[vars]
+ALLOWED_ORIGINS = "https://juanjo17vw.github.io,http://localhost:8000,http://127.0.0.1:8000"
+
 # La API key de ElevenLabs NO va aquí. Se configura como secret:
 #   wrangler secret put ELEVENLABS_API_KEY
 # Opcionalmente, para cambiar de voz:

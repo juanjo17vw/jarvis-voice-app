@@ -51,6 +51,24 @@ Endpoints:
   `history` es opcional; el worker la valida y se queda con los 20 últimos mensajes.
 - `POST /api/speak` — recibe `{ "text": "..." }`, devuelve audio `audio/mpeg`
 
+### Orígenes permitidos (CORS)
+
+La API solo devuelve cabeceras CORS al origen concreto que las pide, y responde 403 a
+cualquier otro. La lista está en `wrangler.toml`:
+
+```toml
+[vars]
+ALLOWED_ORIGINS = "https://juanjo17vw.github.io,http://localhost:8000,http://127.0.0.1:8000"
+```
+
+La comparación es exacta, así que `http://` en vez de `https://`, un puerto distinto o un
+`…github.io.otrositio.com` quedan fuera. Si abres `test.html` con doble clic (`file://`) el
+navegador manda `Origin: null` y la llamada falla: sírvelo con `npm start`.
+
+Esto solo lo aplica el navegador. Frena a otra web que quiera gastar tu cuota, pero no a
+alguien con `curl`, que puede omitir o falsear la cabecera `Origin`. Para eso hace falta
+otra cosa: un token compartido, Cloudflare Access o límites de gasto en cada proveedor.
+
 ### El modelo
 
 `/api/chat` llama a la Messages API de Anthropic con el SDK oficial (`@anthropic-ai/sdk`):
